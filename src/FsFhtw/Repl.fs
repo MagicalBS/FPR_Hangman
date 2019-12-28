@@ -8,7 +8,9 @@ type Message =
     | HelpRequested
     | NotParsable of string
 
-type State = Domain.State
+type HangmanState = Domain.HangmanState
+type SearchPhrase = Domain.SearchPhrase
+type EnteredLetters = Domain.EnteredLetters
 
 let read (input : string) =
     match input with
@@ -41,11 +43,21 @@ let evaluate (update : Domain.Message -> State -> State) (state : State) (msg : 
             sprintf """"%s" was not parsable. %s"""  originalInput "You can get information about known commands by typing \"Help\""
         (state, message)
 
-let print (state : State, outputToPrint : string) =
-    printfn "%s\n" outputToPrint
-    printf "> "
-
+let printHangman (state: HangmanState) = 
+    printf ""
     state
+
+let rec print (state: HangmanState, phrase: SearchPhrase, enteredLetters: EnteredLetters) =
+    match phrase with
+    | Domain.Cons(letter, tail) ->
+        if Domain.ListContains(enteredLetters, letter) then
+            printf "%c" letter
+        else
+            printf "_"
+        print(state, tail, enteredLetters)
+    | _ ->
+        printfn "\n\n"
+        printHangman(state)
 
 let rec loop (state : State) =
     Console.ReadLine()
