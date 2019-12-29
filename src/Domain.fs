@@ -44,6 +44,7 @@ type HangmanState =
     | Body
     | Legs
     | Dead
+    | Success
 
 type GameState = 
     | EnterSearchPhrase

@@ -10,4 +10,14 @@
     <Compile Include="Hangman.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
+  <Target Name="CopyCustomContent" AfterTargets="AfterBuild">
+    <Copy SourceFiles="HangmanAscii\Arms.txt" DestinationFolder="$(OutDir)\HangmanAscii" />
+    <Copy SourceFiles="HangmanAscii\Body.txt" DestinationFolder="$(OutDir)\HangmanAscii" />
+    <Copy SourceFiles="HangmanAscii\Dead.txt" DestinationFolder="$(OutDir)\HangmanAscii" />
+    <Copy SourceFiles="HangmanAscii\Gallows.txt" DestinationFolder="$(OutDir)\HangmanAscii" />
+    <Copy SourceFiles="HangmanAscii\Head.txt" DestinationFolder="$(OutDir)\HangmanAscii" />
+    <Copy SourceFiles="HangmanAscii\Initial.txt" DestinationFolder="$(OutDir)\HangmanAscii" />
+    <Copy SourceFiles="HangmanAscii\Legs.txt" DestinationFolder="$(OutDir)\HangmanAscii" />
+    <Copy SourceFiles="HangmanAscii\Rope.txt" DestinationFolder="$(OutDir)\HangmanAscii" />
+  </Target>
 </Project>
