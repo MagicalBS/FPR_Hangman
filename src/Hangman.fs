@@ -2,6 +2,7 @@ module Hangman
 
 open System
 open Domain
+open Printer
 open System.Text.RegularExpressions
 
 let initHangman(searchPhrase: SearchPhrase) =
@@ -11,8 +12,7 @@ let initHangman(searchPhrase: SearchPhrase) =
 let isValidSearchPhrase (input: string) = 
     Regex.IsMatch(input, "^([A-z]){1,15}(\\s{1}([A-z]){1,15}){0,2}$")
 
-let readSearchPhrase (input: string) =
-    // Console.Clear()
+let convertSearchPhrase (input: string) =
     if isValidSearchPhrase input then
         input
         |> createSearchPhrase
@@ -23,30 +23,23 @@ let readSearchPhrase (input: string) =
 
 
 
-type SuccessValue = HangmanState * SearchPhrase * EnteredLetters * char
-type ErrorValue = EnteredLetters
-
-type InputState =
-    | Unverified of SuccessValue
-    | Correct of SuccessValue
-    | Incorrect of SuccessValue
-    | Invalid of ErrorValue
-
-
-
-let verifyLetterInput(input: char, state: HangmanState, searchPhrase: SearchPhrase, enteredLetters: EnteredLetters): InputState = 
-    if ListContains(enteredLetters, input) && Regex.IsMatch((string)input, "^[A-z]$") then
-        Unverified (state, searchPhrase, enteredLetters, input)
-    else 
+let verifyLetterInput(input: string, state: HangmanState, searchPhrase: SearchPhrase, enteredLetters: EnteredLetters): InputState = 
+    if input.Length = 1 then
+        if ListContains(enteredLetters, input.[0]) = false && Regex.IsMatch((string)input, "^[A-z]$") then
+                Unverified (state, searchPhrase, enteredLetters, input.[0])
+            else 
+                Invalid enteredLetters
+    else
         Invalid enteredLetters
-
 
 let enhanceEnteredLetters(result: InputState) = 
     match result with
     | Unverified (state, searchPhrase, enteredLetters, character) -> 
         if ListContains(searchPhrase, character) then
+            printfn "This letter was correct!"
             Correct (state, searchPhrase, Cons(character, enteredLetters), character)
         else 
+            printfn "This letter was incorrect! You Suck!"
             Incorrect (state, searchPhrase, Cons(character, enteredLetters), character)
 
     | Invalid enteredLetters -> 
@@ -87,55 +80,13 @@ let enhanceState(result: InputState) =
 let rec checkWinCondition (searchPhrase: SearchPhrase, enteredLetters: EnteredLetters): bool =
     match searchPhrase with
     | Cons(letter, tail) ->
-        if ListContains(enteredLetters, letter) then
+        if ListContains(enteredLetters, letter) || letter = ' ' then
             checkWinCondition(tail, enteredLetters)
         else
             false
     | _ ->  
         true
 
-let printHangman' (state: HangmanState) = 
-    match state with 
-    | Initial ->
-        System.IO.File.ReadAllText "HangmanAscii/Initial.txt"
-        |> Console.WriteLine
-    | Gallows ->
-        System.IO.File.ReadAllText "HangmanAscii/Gallows.txt"
-        |> Console.WriteLine
-    | Rope ->
-        System.IO.File.ReadAllText "HangmanAscii/Rope.txt"
-        |> Console.WriteLine
-    | Head ->
-        System.IO.File.ReadAllText "HangmanAscii/Head.txt"
-        |> Console.WriteLine
-    | Arms ->
-        System.IO.File.ReadAllText "HangmanAscii/Arms.txt"
-        |> Console.WriteLine
-    | Body ->
-        System.IO.File.ReadAllText "HangmanAscii/Body.txt"
-        |> Console.WriteLine
-    | Legs ->
-        System.IO.File.ReadAllText "HangmanAscii/Legs.txt"
-        |> Console.WriteLine
-    | Dead ->
-        System.IO.File.ReadAllText "HangmanAscii/Dead.txt"
-        |> Console.WriteLine
-    | Success -> 
-        failwith "Invalid State"
-    state
-
-let printHangman (result: InputState) = 
-    match result with 
-    | Unverified _ -> 
-        failwith "Invalid State"
-    | Correct (state, searchPhrase, enteredLetters, character) -> 
-        printHangman' state |> ignore
-        Correct (state, searchPhrase, enteredLetters, character)
-    | Incorrect (state, searchPhrase, enteredLetters, character) -> 
-        printHangman' state |> ignore
-        Incorrect (state, searchPhrase, enteredLetters, character)
-    | Invalid err ->
-        Invalid err
 
 let rec checkWonOrLost (result: InputState) =
     match result with
@@ -155,7 +106,6 @@ let rec checkWonOrLost (result: InputState) =
     | Invalid err ->
         Invalid err
 
-
 let rec hangmanLoop (state: HangmanState, searchPhrase: SearchPhrase, enteredLetters: EnteredLetters): GameState =
     match state with 
     | Dead ->
@@ -163,12 +113,15 @@ let rec hangmanLoop (state: HangmanState, searchPhrase: SearchPhrase, enteredLet
     | Success -> 
         Won searchPhrase
     | _ ->
+        printfn "Guess a letter: "
+
         let inputState = 
-            (Console.ReadKey().KeyChar, state, searchPhrase, enteredLetters)
+            (Console.ReadLine(), state, searchPhrase, enteredLetters)
             |> verifyLetterInput
             |> enhanceEnteredLetters
             |> enhanceState
             |> printHangman
+            |> printPhrase
             |> checkWonOrLost
 
         match inputState with
@@ -190,43 +143,25 @@ let playHangman (state: GameState) =
     | _ ->
         state
 
-let printWonOrLost (state: GameState) : GameState = 
-    match state with
-    | Won phrase -> 
-        printfn "Congratulations, you won."
-        initGame
-    | Lost phrase -> 
-        printfn "Congratulations, you dead." 
-        initGame
-    | _ -> 
-        state
+let rec readMask pw =
+    let k = Console.ReadKey()
+    match k.Key with
+    | ConsoleKey.Enter -> pw
+    | _ ->
+        Console.Write "\b*"
+        readMask (k.KeyChar::pw)
+
+let readSearchPhrase = fun () ->
+    readMask [] |> String.Concat
 
 
 let rec gameLoop (state: GameState) =
+    Console.Clear()
     printf "Enter the Search Phrase: "
-    Console.ReadLine()
-    |> readSearchPhrase
+    readSearchPhrase()
+    |> convertSearchPhrase
     |> playHangman
-    |> printWonOrLost
-    |> gameLoop
+    |> printWonOrLost 
+    |> gameLoop 
 
-let rec printPhrase' (state: HangmanState, phrase: SearchPhrase, enteredLetters: EnteredLetters) =
-    match phrase with
-    | Cons(letter, tail) ->
-        if ListContains(enteredLetters, letter) then
-            printf "%c" letter
-        else
-            printf "_"
-        printPhrase'(state, tail, enteredLetters)
-    | _ ->
-        printfn "\n\n"
 
-let printPhrase (input: InputState) = 
-    match input with 
-    | Correct (state, searchPhrase, enteredLetters, character) -> 
-        printPhrase'(state, searchPhrase, enteredLetters) |> ignore
-    | Incorrect (state, searchPhrase, enteredLetters, character) -> 
-        printPhrase'(state, searchPhrase, enteredLetters) |> ignore
-    | _ -> ()
-
-    printHangman(input)

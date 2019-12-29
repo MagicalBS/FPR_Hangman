@@ -56,3 +56,13 @@ type GuessedLetter = char
 
 let initGame: GameState =
     EnterSearchPhrase
+
+    
+type SuccessValue = HangmanState * SearchPhrase * EnteredLetters * char
+type ErrorValue = EnteredLetters
+
+type InputState =
+    | Unverified of SuccessValue
+    | Correct of SuccessValue
+    | Incorrect of SuccessValue
+    | Invalid of ErrorValue
