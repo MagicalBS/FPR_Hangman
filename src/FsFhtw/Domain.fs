@@ -1,22 +1,5 @@
 module Domain
 
-type State = int
-
-type Message =
-    | Increment
-    | Decrement
-    | IncrementBy of int
-    | DecrementBy of int
-
-let init () : State =
-    0
-
-let update (msg : Message) (model : State) : State =
-    match msg with
-    | Increment -> model + 1
-    | Decrement -> model - 1
-    | IncrementBy x -> model + x
-    | DecrementBy x -> model - x
 
 type List<'a> = 
     | End
@@ -25,6 +8,12 @@ type List<'a> =
 type SearchPhrase = List<char>
 
 type EnteredLetters = List<char>
+
+let rec createSearchPhrase(input: string) : List<char> = 
+    if input.Length > 1 then
+        Cons(input.[0], createSearchPhrase(input.Substring(1)))
+    else
+        Cons(input.[0], End)
 
 let rec ListContains (list: List<'a>, wanted: 'a): bool =
     match list with
@@ -58,8 +47,11 @@ type HangmanState =
 
 type GameState = 
     | EnterSearchPhrase
-    | InProgress
-    | Won
-    | Lost
+    | InProgress of SearchPhrase
+    | Won of SearchPhrase
+    | Lost of SearchPhrase
 
 type GuessedLetter = char
+
+let initGame: GameState =
+    EnterSearchPhrase

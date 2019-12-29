@@ -7,7 +7,7 @@
   <ItemGroup>
     <Compile Include="Domain.fs" />
     <Compile Include="Parser.fs" />
-    <Compile Include="Repl.fs" />
+    <Compile Include="Hangman.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 </Project>
