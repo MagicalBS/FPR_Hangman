@@ -18,32 +18,38 @@ let convertSearchPhrase (input: string) =
         |> createSearchPhrase
         |> InProgress 
     else
+        printInvalidSearchPhrase(input)
         EnterSearchPhrase
-
-
 
 
 let verifyLetterInput(input: string, state: HangmanState, searchPhrase: SearchPhrase, enteredLetters: EnteredLetters): InputState = 
     if input.Length = 1 then
-        if ListContains(enteredLetters, input.[0]) = false && Regex.IsMatch((string)input, "^[A-z]$") then
-                Unverified (state, searchPhrase, enteredLetters, input.[0])
+        if Regex.IsMatch((string)input, "^[A-z]$") then
+            if ListContains(enteredLetters, input.[0]) then
+                AlreadyGuessed input.[0]
             else 
-                Invalid enteredLetters
+                Unverified (state, searchPhrase, enteredLetters, input.[0])
+        else 
+            Invalid enteredLetters
     else
         Invalid enteredLetters
-
+        
 let enhanceEnteredLetters(result: InputState) = 
     match result with
     | Unverified (state, searchPhrase, enteredLetters, character) -> 
         if ListContains(searchPhrase, character) then
-            printfn "This letter was correct!"
+            printCorrectLetter()
             Correct (state, searchPhrase, Cons(character, enteredLetters), character)
         else 
-            printfn "This letter was incorrect! You Suck!"
+            printIncorrectLetter()
             Incorrect (state, searchPhrase, Cons(character, enteredLetters), character)
 
-    | Invalid enteredLetters -> 
-        Invalid enteredLetters 
+    | AlreadyGuessed character -> 
+        printLetterAlreadyGuessed(character)
+        AlreadyGuessed character 
+
+    | Invalid errVal -> 
+        Invalid errVal 
         
     | _ -> 
         failwith "Invalid State"
@@ -75,6 +81,8 @@ let enhanceState(result: InputState) =
             failwith "Invalid State"
     | Invalid err -> 
         Invalid err
+    | AlreadyGuessed err -> 
+        AlreadyGuessed err
         
 
 let rec checkWinCondition (searchPhrase: SearchPhrase, enteredLetters: EnteredLetters): bool =
@@ -105,6 +113,8 @@ let rec checkWonOrLost (result: InputState) =
             Incorrect (state, searchPhrase, enteredLetters, character)
     | Invalid err ->
         Invalid err
+    | AlreadyGuessed letter ->
+        AlreadyGuessed letter
 
 let rec hangmanLoop (state: HangmanState, searchPhrase: SearchPhrase, enteredLetters: EnteredLetters): GameState =
     match state with 
@@ -113,16 +123,19 @@ let rec hangmanLoop (state: HangmanState, searchPhrase: SearchPhrase, enteredLet
     | Success -> 
         Won searchPhrase
     | _ ->
-        printfn "Guess a letter: "
+        printPhrase(state, searchPhrase, enteredLetters)
+        printHangman(state)
+        printEnteredLetters(enteredLetters)
+        printGuessLetter()
 
         let inputState = 
             (Console.ReadLine(), state, searchPhrase, enteredLetters)
             |> verifyLetterInput
             |> enhanceEnteredLetters
             |> enhanceState
-            |> printHangman
-            |> printPhrase
             |> checkWonOrLost
+
+        clearAfterEnterIfNotOver(inputState)
 
         match inputState with
         | Unverified _ ->
@@ -131,7 +144,9 @@ let rec hangmanLoop (state: HangmanState, searchPhrase: SearchPhrase, enteredLet
             hangmanLoop (state', searchPhrase', enteredLetters')
         | Incorrect (state', searchPhrase', enteredLetters', character) ->
             hangmanLoop (state', searchPhrase', enteredLetters')
-        | Invalid err ->
+        | Invalid _ ->
+            hangmanLoop (state, searchPhrase, enteredLetters)
+        | AlreadyGuessed _ ->
             hangmanLoop (state, searchPhrase, enteredLetters)
 
 
@@ -152,16 +167,14 @@ let rec readMask pw =
         readMask (k.KeyChar::pw)
 
 let readSearchPhrase = fun () ->
-    readMask [] |> String.Concat
-
+    let searchPhrase = readMask [] |> String.Concat
+    Console.Clear()
+    searchPhrase
 
 let rec gameLoop (state: GameState) =
-    Console.Clear()
-    printf "Enter the Search Phrase: "
+    printEnterSearchPhrase()
     readSearchPhrase()
     |> convertSearchPhrase
     |> playHangman
     |> printWonOrLost 
     |> gameLoop 
-
-

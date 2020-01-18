@@ -11,29 +11,26 @@ type EnteredLetters = List<char>
 
 let rec createSearchPhrase(input: string) : List<char> = 
     if input.Length > 1 then
-        Cons(input.[0], createSearchPhrase(input.Substring(1)))
+        Cons(input.[input.Length - 1], createSearchPhrase(input.Substring(0, input.Length - 1)))
     else
         Cons(input.[0], End)
 
-let rec ListContains (list: List<'a>, wanted: 'a): bool =
+let rec ListContains (list: List<char>, wanted: char): bool =
     match list with
     | Cons(current, tail) ->
-        if current = wanted then
-            true
-        else
-            ListContains(tail, wanted)
+        
+        if (current.GetType() = typedefof<char>) then
+            if System.Char.ToUpper(current) = System.Char.ToUpper(wanted) then
+                true
+            else
+                ListContains(tail, wanted)
+        else         
+            if current = wanted then
+                true
+            else
+                ListContains(tail, wanted)
     | _ ->
         false
-
-let rec WrongInputCount (phrase: SearchPhrase, letters: EnteredLetters): int = 
-    match letters with
-    | Cons(letter, tail) ->
-        if ListContains(phrase, letter) then
-            WrongInputCount(phrase, tail)
-        else
-            WrongInputCount(phrase, tail) + 1        
-    | _ ->
-        0
 
 type HangmanState = 
     | Initial
@@ -57,12 +54,13 @@ type GuessedLetter = char
 let initGame: GameState =
     EnterSearchPhrase
 
-    
 type SuccessValue = HangmanState * SearchPhrase * EnteredLetters * char
 type ErrorValue = EnteredLetters
+type AlreadyGuessedValue = char
 
 type InputState =
     | Unverified of SuccessValue
     | Correct of SuccessValue
     | Incorrect of SuccessValue
+    | AlreadyGuessed of AlreadyGuessedValue
     | Invalid of ErrorValue

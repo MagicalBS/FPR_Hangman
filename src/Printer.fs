@@ -3,7 +3,8 @@ module Printer
 open System
 open Domain
 
-let printHangman' (state: HangmanState) = 
+
+let printHangman (state: HangmanState) = 
     match state with 
     | Initial ->
         System.IO.File.ReadAllText "HangmanAscii/Initial.txt"
@@ -31,28 +32,16 @@ let printHangman' (state: HangmanState) =
         |> Console.WriteLine
     | Success -> 
         failwith "Invalid State"
-    state
-
-let printHangman (result: InputState) = 
-    match result with 
-    | Unverified _ -> 
-        failwith "Invalid State"
-    | Correct (state, searchPhrase, enteredLetters, character) -> 
-        printHangman' state |> ignore
-        Correct (state, searchPhrase, enteredLetters, character)
-    | Incorrect (state, searchPhrase, enteredLetters, character) -> 
-        printHangman' state |> ignore
-        Incorrect (state, searchPhrase, enteredLetters, character)
-    | Invalid err ->
-        Invalid err
 
 let printWonOrLost (state: GameState) : GameState = 
     match state with
     | Won phrase -> 
-        printfn "Congratulations, you won."
+        printfn "Congratulations, you won.\nPress enter to play again!"
+        Console.ReadLine() |> ignore
         initGame
     | Lost phrase -> 
-        printfn "Congratulations, you dead." 
+        printfn "Congratulations, you dead.\nPress enter to play again!" 
+        Console.ReadLine() |> ignore
         initGame
     | _ -> 
         state
@@ -70,11 +59,51 @@ let rec printPhrase' (state: HangmanState, phrase: SearchPhrase, enteredLetters:
     | _ ->
         printfn "\n\n"
 
-let printPhrase (input: InputState) = 
-    match input with 
-    | Correct (state, searchPhrase, enteredLetters, character) -> 
-        printPhrase'(state, searchPhrase, enteredLetters) |> ignore
-    | Incorrect (state, searchPhrase, enteredLetters, character) -> 
-        printPhrase'(state, searchPhrase, enteredLetters) |> ignore
-    | _ -> ()
-    input
+let printPhrase (state: HangmanState, phrase: SearchPhrase, enteredLetters: EnteredLetters) = 
+    printf "Phrase to search: "
+    printPhrase'(state, phrase, enteredLetters)
+
+let printEnterSearchPhrase() =
+    printfn "Enter the Search Phrase: "
+
+let printGuessLetter() = 
+    printfn "Guess a letter: "
+
+let printCorrectLetter() = 
+    printfn "This letter was correct!"
+
+let printIncorrectLetter() = 
+    printfn "This letter was incorrect! You suck!"
+
+let printLetterAlreadyGuessed(character: char) = 
+    printfn "This letter \'%c\' was already guessed! You suck!" character
+
+let rec printList(letters: List<char>) = 
+    match letters with
+    | Cons(letter, tail) -> 
+        match tail with 
+        | Cons(letter', tail') ->
+            printf "%c, " (System.Char.ToUpper(letter))
+        | _ ->        
+            printf "%c" (System.Char.ToUpper(letter))
+        printList tail
+    | _ ->
+        printfn "\n"
+
+let printEnteredLetters(enteredLetters: List<char>) = 
+    printf "Entered letters: "
+    printList(enteredLetters)
+
+let printInvalidSearchPhrase(regex: string) = 
+    printf "The search phase was invalid. Valid Letters: A-Z, a-z and a word has a maximum of 15 characters. 3 Words allowed." 
+
+let clearAfterEnterIfNotOver(inputState: InputState) = 
+    match inputState with 
+    | Correct(Success, _, _, _) ->
+         printf ""
+    | Incorrect (Dead, _, _, _) -> 
+        printHangman Dead
+    | _ ->
+        printfn "Hit Enter to continue"
+        Console.ReadLine() |> ignore
+        Console.Clear()
